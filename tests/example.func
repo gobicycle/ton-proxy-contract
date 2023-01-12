@@ -1,0 +1,90 @@
+const slice test_owner = "kQDo8wViYgM6AFcPR8OPKL1zzs6V5bvm6GOYFRNPVYdmGz1i"a;
+const slice test_no_owner = "kQCVUXhFnMlEFOu2qSGE1qhglcNebawFWrvidHC3yXyWbB9o"a;
+const int test_subwallet_id = 123;
+
+() set_default_initial_data() impure {
+    set_data(
+            begin_cell()
+                    .store_slice(test_owner)
+                    .store_uint(test_subwallet_id, 32)
+                    .end_cell()
+    );
+}
+
+int __test_owner() {
+    set_default_initial_data();
+
+    slice message_body = begin_cell().store_ref(begin_cell().store_uint(12345, 32).end_cell()).end_cell().begin_parse();
+
+    int amount = 100;
+    int balance = 1000000;
+
+    cell message_valid = begin_cell()
+            .store_uint(0x6, 4)
+            .store_slice(test_owner)
+            .store_slice(test_no_owner)
+            .store_grams(amount)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_slice(message_body)
+            .end_cell();
+
+    cell message_invalid = begin_cell()
+            .store_uint(0x6, 4)
+            .store_slice(test_no_owner)
+            .store_slice(test_no_owner)
+            .store_grams(amount)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_slice(message_body)
+            .end_cell();
+
+    var (int gas_used1, _) = invoke_method(recv_internal, [balance, amount, message_valid, message_body]);
+    int gas_used2 = invoke_method_expect_fail(recv_internal, [balance, amount, message_invalid, message_body]);
+
+    return gas_used1;
+}
+
+int __test_empty() {
+    set_default_initial_data();
+
+    slice message_body = begin_cell().store_ref(begin_cell().store_uint(12345, 32).end_cell()).end_cell().begin_parse();
+
+    int amount = 100;
+    int balance = 1000000;
+
+    cell message_empty = begin_cell()
+            .store_uint(0x6, 4)
+            .store_slice(test_owner)
+            .store_slice(test_no_owner)
+            .store_grams(amount)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_slice(message_body)
+            .end_cell();
+
+    var (int gas_used1, _) = invoke_method(recv_internal, [balance, amount, message_empty, message_body]);
+;;     int gas_used2 = invoke_method_expect_fail(recv_internal, [balance, amount, message_invalid, message_body]);
+
+    return gas_used1;
+}
+
+int __test_bounce() {
+    set_default_initial_data();
+
+    slice message_body = begin_cell().store_ref(begin_cell().store_uint(12345, 32).end_cell()).end_cell().begin_parse();
+
+    int amount = 100;
+    int balance = 1000000;
+
+    cell message_empty = begin_cell()
+            .store_uint(0x7, 4)
+            .store_slice(test_owner)
+            .store_slice(test_no_owner)
+            .store_grams(amount)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_slice(message_body)
+            .end_cell();
+
+    var (int gas_used1, _) = invoke_method(recv_internal, [balance, amount, message_empty, message_body]);
+    ;;     int gas_used2 = invoke_method_expect_fail(recv_internal, [balance, amount, message_invalid, message_body]);
+
+    return gas_used1;
+}
